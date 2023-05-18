@@ -53,6 +53,18 @@ export default {
 // 	--sidebar-width: 300px;
 // }
 
+// :root {
+// 	// --primary: #4ade80;
+// 	--primary: #256dda;
+
+// 	--primary-alt: #22c55e;
+// 	--grey: #64748b;
+// 	--dark: #1e293b;
+// 	--darker: #0e101b;
+// 	--dark-alt: #334155;
+// 	--light: #f1f5f9;
+// 	--sidebar-width: 300px;
+// }
 
 body {
 	background: var(--darker);

@@ -21,13 +21,13 @@
 				<span class="material-icons">candlestick_chart</span>
 				<span class="text">Chart</span>
             </router-link>
-			<router-link to="/team" class="button">
+			<router-link to="/explore" class="button">
 				<span class="material-icons">query_stats</span>
-				<span class="text">Team</span>
+				<span class="text">Explore</span>
 			</router-link>
-			<router-link to="/contact" class="button">
+			<router-link to="/auto" class="button">
 				<span class="material-icons">precision_manufacturing</span>
-				<span class="text">Contact</span>
+				<span class="text">Automat</span>
 			</router-link>
 		</div>
 
@@ -65,6 +65,7 @@ aside {
     border-right: 4px solid var(--dark);
 
 	width: calc(2rem + 32px);
+	min-width: calc(2rem + 32px);
 	overflow: hidden;
 	min-height: 100vh;
 	padding: 1rem;
@@ -172,6 +173,8 @@ aside {
 
 	&.is-expanded {
 		width: var(--sidebar-width);
+		min-width: var(--sidebar-width);
+
 
 		.menu-toggle-wrap {
 			top: -3rem;

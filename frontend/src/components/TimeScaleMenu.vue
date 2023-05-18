@@ -25,8 +25,8 @@
     },
     methods: {
         selectTimeScale(timeScale) {
-            this.$emit('select', timeScale);
-            this.$emit('close');
+          this.$emit('close');
+          this.$emit('select', timeScale);
 
         },
         handleOutsideClick(event) {

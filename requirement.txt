@@ -1,0 +1,4 @@
+fastapi
+python-binance
+uvicorn
+cachetools
