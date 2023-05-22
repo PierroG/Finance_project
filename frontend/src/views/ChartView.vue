@@ -1,6 +1,6 @@
 <template>
   <div class="ChartView">
-    <SearchBar />
+    <SearchBar @select="initSymbol"/>
     <h1>This is a Chart page</h1>
     <div class="chart-layout">
       <div id='ici' class="button-container">
@@ -17,15 +17,37 @@
           </span>
         </div>
 
-        
-        
-
         <span class="separator"></span>
         <button title="Fit content" class="material-icons" style="font-size: 1.5rem;" @click="fitContent()">fit_screen</button>
         <button title="Reset price scale" class="material-icons" style="font-size: 1.5rem;" @click="resetYAxis()">height</button>
+        <span class="separator"></span>
+        <div>
+        <IndicatorSelector
+          @add="computeIndicator"/>
+        </div>
+        <button @click="deleteSeries">delete</button>
       </div>
       <div id="chart-container"></div>
     </div>
+    
+    <div class="indicList">
+      <div @mouseenter="hoverElem(index)" @mouseleave="unhoverElem(index)" class="indic" v-for="(series, index) in lineSeries_list" :key="index">
+        <div class="circle" :style="{ backgroundColor: series.color }"></div>
+        <p>{{ series.name }}</p>
+        <p>{{ series.options }}</p>
+        <!-- <ul>
+          <li v-for="(value, key) in series.options" :key="key">
+            {{ key }}: {{ value }}
+          </li>
+        </ul> -->
+        <button class="material-icons" @click="deleteSeries(index)">
+            close
+        </button>
+        <!-- Add any other display or control elements you need -->
+      </div>
+
+    </div>
+
   </div>
 </template>
 
@@ -35,10 +57,12 @@ import axios from 'axios';
 // https://www.tradingview.com/lightweight-charts/
 import { createChart, CrosshairMode, PriceScaleMode } from 'lightweight-charts';
 import TimeScaleMenu from '../components/TimeScaleMenu.vue'
+import IndicatorSelector from '../components/IndicatorSelector.vue'
 import SearchBar from '../components/SearchBar.vue'
 export default {
   components: {
     TimeScaleMenu,
+    IndicatorSelector,
     SearchBar
   },
   data() {
@@ -48,21 +72,68 @@ export default {
       data: null,
       selectedTimeScale: '1d',
       isTimeScaleMenuOpen: false,
+      lineSeries: null,
+      areaSeries: null,
+      series: [],
+      lineSeries_list: [],
+
     };
   },
   methods: {
+    randomColor() {
+      return '#' + Math.floor(Math.random()*16777215).toString(16);
+    },
+    async computeIndicator(indicator, option, color) {
+      let symbol = 'BTCUSDT'
+      let interval = this.selectedTimeScale
+      let options = JSON.parse(option)
+      await axios.get(`http://localhost:6500/stocks/${symbol}/indicators/${indicator}`, { params: { interval : interval, option:  option }}) //
+        .then(response => {
+          // Process the response data
+          let data = response.data
+          console.log(data);
+          let color = this.randomColor()
+          let newLineSeries = this.chart.addLineSeries({
+            color: color,
+            lineWidth: 2,
+          })
+          newLineSeries.setData(data);
+
+          // Push the new line series object into the lineSeries array
+          this.lineSeries_list.push({name: indicator, options: options, color: color, serieObject: newLineSeries}); //
+
+        })
+        .catch(error => {
+          console.error(error);
+      });
+    },
+    deleteSeries(index) {
+      console.log(this.lineSeries_list[index].serieObject)
+      this.chart.removeSeries(this.lineSeries_list[index].serieObject)
+      this.lineSeries_list.splice(index, 1)
+    },
+    hoverElem(index) {
+      console.log("hover")
+      this.lineSeries_list[index].serieObject.applyOptions({
+        lineWidth: 3
+      })
+    },
+    unhoverElem(index) {
+      console.log("hover")
+      this.lineSeries_list[index].serieObject.applyOptions({
+        lineWidth: 1
+      })
+    },
     toggleTimeScaleMenu() {
       console.log(this.isTimeScaleMenuOpen);
       this.isTimeScaleMenuOpen = !this.isTimeScaleMenuOpen;
       console.log(this.isTimeScaleMenuOpen);
 
     },
-    setTimeScale(timeScale) {
+    async setTimeScale(timeScale) {
       this.selectedTimeScale = timeScale;
-      // Update the chart with the selected time scale
-      // Your logic to update the chart here
-      // You can use the selectedTimeScale value in your chart configuration or pass it to a method that handles the chart update
-      // Example: this.updateChart(this.selectedTimeScale);
+      await this.updateChartData('BTCUSDT', timeScale)
+
     },
     closeTimeScaleMenu() {
       this.isTimeScaleMenuOpen = false;
@@ -80,9 +151,10 @@ export default {
         autoScale: true,
       });
     },
-    async getHistoricalData() {
+    async getHistoricalData(symbol, interval) {
       let data = []
-      await axios.get('http://localhost:6500/historical/BTCUSDT')
+      // symbol = 'BTCUSDT'
+      await axios.get(`http://localhost:6500/stocks/${symbol}/historical-data`, { params: { interval : interval }})
         .then(response => {
           // Process the response data
           console.log(response.data);
@@ -113,77 +185,75 @@ export default {
       return data
     },
 
-    async createChart(container) {
+    async initChart() {
+      const container = document.getElementById('chart-container');
+
       this.chart = createChart(container, {
-        width: 1000,
-        height: 600,
+        // width: 1000,
+        // height: 600,
+        autoSize: true,
+        rightPriceScale: {
+          visible: true,
+          borderVisible: false,
+          mode: PriceScaleMode.Normal,
+          // borderColor: 'rgba(197, 203, 206, 1)',
+        },
         layout: {
           background: {
-            color: '#1e293b', // Set background color
-          },
-          textColor: '#FFFFFF', // Set text color
+                type: 'solid',
+                color: '#000000',
+              },
+          textColor: '#d1d4dc',
         },
         grid: {
-          vertLines: {
-            color: 'rgba(197, 203, 206, 0.5)', // Set vertical grid line color
-          },
           horzLines: {
-            color: 'rgba(197, 203, 206, 0.5)', // Set horizontal grid line color
+            color: 'rgba(42, 46, 57, 0.5)',
+          },
+          vertLines: {
+            visible: false,
+            color: 'rgba(42, 46, 57, 0.5)',
           },
         },
-        timeScale: {
-          timeVisible :true,
-          secondsVisible : false,
+        crosshair: {
+          mode: CrosshairMode.Normal,
         },
-        // rightPriceScale: {
-        //   borderVisible: false,
-        // },
-        // crosshair: {
-        //   horzLine: {
-        //     visible: false,
-        //   },
-	      // },
-        // handleScroll: {
-        //   vertTouchDrag: false,
-        // },
 
-        // other configuration options
+        timeScale: {
+          borderVisible: false,
+          borderColor: 'rgba(197, 203, 206, 1)',
+          timeVisible: true
+        },
+        handleScroll: {
+          vertTouchDrag: false,
+        },
+
+        // vertTouchDrag : false,
       });
-
-      var data = [];
-      
-      // Generate random data
-      // const startDate = new Date('2021-01-01').getTime();
-      // var value = 0;
-      // for (let i = 0; i < 100; i++) {
-      //   const date = new Date(startDate + i * 5 * 60 * 1000);
-      //   value = value + Math.ceil(Math.random() * 99) * (Math.round(Math.random()) ? 1 : -1);
-      //   data.push({ time: date/1000, value });
-      // }
-      // this.data = data
-
-      // Generate fake data for line series
-
-      // Add necessary elements to the chart
-      const lineSeries = this.chart.addLineSeries({
-        color: 'rgba(4, 111, 232, 1)',
-	      lineWidth: 2,
-        crosshairMarkerVisible: false,
-        lastValueVisible: false,
-        priceLineVisible: false,
-      });
-      lineSeries.setData(dataa);
-
-      // var avgPriceLine = {
-      //   price: 26000,
-      //   color: '#be1238',
+      // const line = chart.addLineSeries({
+      //   color: 'rgba(4, 111, 232, 1)',
       //   lineWidth: 2,
-      //   lineStyle: LightweightCharts.LineStyle.Solid,
-      //   axisLabelVisible: true,
-      //   title: 'average price',
-      // };
+      // })
+      // line.setData(data);
+      
+    },
+    async updateChartData(symbol, interval) {
+      if (this.areaSeries!=null) {
+        this.chart.removeSeries(this.areaSeries)
 
-      // lineSeries.createPriceLine(avgPriceLine);
+      }
+      let data = await this.getHistoricalData(symbol, interval);
+      this.areaSeries = this.chart.addAreaSeries({
+        topColor:    'rgba(41, 98, 255, 0.56)',
+        bottomColor: 'rgba(41, 98, 255, 0.04)',
+        lineColor:   'rgba(41, 98, 255, 1)',
+        lineWidth: 2,
+      });
+      this.areaSeries.setData(data)
+
+    },
+    async initSymbol(symbol) {
+      console.log("ini symbol: "+ symbol)
+      await this.updateChartData(symbol, '1d')
     },
     setView(view) {
       this.view = view;
@@ -195,23 +265,8 @@ export default {
     },
     updateChartView() {
       if (this.chart) {
-        const resolution = this.getResolution();
         console.log(resolution)
         this.chart.timeScale().setVisibleRange(resolution);
-      }
-    },
-    getResolution() {
-      const startDate = new Date('2021-01-01').getTime();
-      switch (this.view) {
-        case 'day':
-          return { from: new Date(startDate -24 * 60 * 60).getTime() / 1000, to: new Date(startDate).getTime() /1000 };
-        case 'week':
-          return { from: new Date(startDate -7 * 24 * 60 * 60).getTime() / 1000, to: new Date(startDate).getTime() / 1000 };
-          // return { from: -7 * 24 * 60 * 60, to: 0 };
-        case 'month':
-          return { from: -30 * 24 * 60 * 60, to: 0 };
-        default:
-          return { from: -24 * 60 * 60, to: 0 };
       }
     },
     setCustomView() {
@@ -226,94 +281,30 @@ export default {
     },
   },
   async mounted() {
-    const container = document.getElementById('chart-container');
-    // await this.createChart(container);
-    
+    await this.initChart()
+    await this.updateChartData('BTCUSDT', '1d')
 
-    
-    var chart = createChart(container, {
-      // width: 1000,
-      // height: 600,
-      autoSize: true,
-      rightPriceScale: {
-        visible: true,
-        borderVisible: false,
-        mode: PriceScaleMode.Normal,
-        // borderColor: 'rgba(197, 203, 206, 1)',
-      },
-      // leftPriceScale: {
-      //   visible: true,
-      //   mode: PriceScaleMode.Normal,
+    // const chartElement = document.getElementById('chart-container');
+    // const tableCell = chartElement.querySelector('table tr td:nth-child(2)');
+    // const mycanvas = tableCell.querySelectorAll('canvas')[1];
 
-      // },
-      layout: {
-        background: {
-              type: 'solid',
-              color: '#000000',
-            },
-        textColor: '#d1d4dc',
-      },
-      grid: {
-        horzLines: {
-          color: 'rgba(42, 46, 57, 0.5)',
-        },
-        vertLines: {
-          visible: false,
-          color: 'rgba(42, 46, 57, 0.5)',
-        },
-      },
-      crosshair: {
-        mode: CrosshairMode.Normal,
-      },
-
-      timeScale: {
-        borderVisible: false,
-        borderColor: 'rgba(197, 203, 206, 1)',
-      },
-      handleScroll: {
-        vertTouchDrag: false,
-      },
-
-      // vertTouchDrag : false,
-    });
-    // const line = chart.addLineSeries({
-    //   color: 'rgba(4, 111, 232, 1)',
-    //   lineWidth: 2,
-    // })
-    // line.setData(data);
-    let data = await this.getHistoricalData();
-    var areaSeries = chart.addAreaSeries({
-      topColor:    'rgba(41, 98, 255, 0.56)',
-      bottomColor: 'rgba(41, 98, 255, 0.04)',
-      lineColor:   'rgba(41, 98, 255, 1)',
-      lineWidth: 2,
-	  });
-    areaSeries.setData(data)
-
-    
-
-    const chartElement = document.getElementById('chart-container');
-    const tableCell = chartElement.querySelector('table tr td:nth-child(2)');
-    const mycanvas = tableCell.querySelectorAll('canvas')[1];
-
-    function handler(pram){
-      console.log(pram)
-    }
-    mycanvas.addEventListener("mousedown", (eventData) => {
-      if (eventData.button === 2){
-        console.log("click on canvas")
-        chart.applyOptions({handleScroll: {
-                              pressedMouseMove: false
-                            }})
-        chart.subscribeCrosshairMove(handler)
-      }
+    // function handler(pram){
+    //   console.log(pram)
+    // }
+    // mycanvas.addEventListener("mousedown", (eventData) => {
+    //   if (eventData.button === 2){
+    //     console.log("click on canvas")
+    //     chart.applyOptions({handleScroll: {
+    //                           pressedMouseMove: false
+    //                         }})
+    //     chart.subscribeCrosshairMove(handler)
+    //   }
       
-    })
-    mycanvas.addEventListener("mouseup", () => {
-      console.log("unclick on canvas")
-      chart.unsubscribeCrosshairMove(handler)
-    })
-
+    // })
+    // mycanvas.addEventListener("mouseup", () => {
+    //   console.log("unclick on canvas")
+    //   chart.unsubscribeCrosshairMove(handler)
+    // })
 
   },
 
@@ -376,6 +367,45 @@ export default {
   
   &:hover {
     background-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.circle {
+  align-self: center;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.indicList{
+
+  
+  button {
+    visibility: hidden;
+    color: rgba(255, 255, 255, 0.75);
+    border-radius: 50%;
+    &:hover{
+      color: rgb(255, 38, 38);
+    }
+  }
+  .indic {
+    padding: 1px 4px ;
+    border-radius: 3px;
+    display: flex;
+    width: fit-content;
+    border: solid 1px transparent;
+
+  
+    &:hover {
+      border: solid 1px rgba(255, 255, 255, 0.5);
+      // background-color: rgba(255, 255, 255, 0.10);
+      button {
+        visibility: visible;
+
+      }
+    }
   }
 }
 </style>

@@ -9,14 +9,15 @@
         @focus="openSearch"
       />
       
-      <button @click="console.log('click')">
+      <button>
         <span class="material-icons">search</span>
       </button>
     </div>
 
     <div v-if="isDropdownOpen" class="dropdown">
       <ul>
-        <li v-for="(ticker, index) in filteredTickers" :key="index" @click="selectCity(city)">
+        <li class="crypto" v-for="(ticker, index) in filteredTickers" :key="index" @click="selectTicker(ticker.symbol)">
+          <img class="cryptoLogo" :src="getSvgPath(ticker.symbol)" alt="" />
           {{ ticker.symbol }} | {{ ticker.price }}
         </li>
       </ul>
@@ -32,7 +33,8 @@ export default {
     return {
       searchTerm: '',
       Tickers: [],
-      isDropdownOpen: false
+      isDropdownOpen: false,
+      filenames: null
     };
   },
   computed: {
@@ -40,10 +42,32 @@ export default {
       return this.Tickers.filter(ticker =>
         ticker.symbol.toLowerCase().startsWith(this.searchTerm.toLowerCase())
         // includes
-      );
+      ).slice(0,50);
     }
   },
+  mounted() {
+    let filenames =  import.meta.glob('@/assets/cryptologos-svg/*.svg',);
+    this.filenames = Object.keys(filenames).map((key) => {
+        // Extract the name from the key
+        const matches = key.match(/\/([^/]+)\.svg$/);
+        return matches ? matches[1] : '';
+    });
+    console.log(this.filenames)
+  },
   methods: {
+    getSvgPath(symbol) {
+      const matchingFilename = this.findMatchingFilename(symbol);
+      if (matchingFilename) {
+        return `src/assets/cryptologos-png/${matchingFilename}.png`;
+      }
+      // Return a default SVG path if no match is found
+      return 'src/assets/cryptologos-png/default.png';
+    },
+    findMatchingFilename(symbol) {
+      // const filenames = require.context('@/assets/cryptologos-svg', false, /\.svg$/).keys();
+      const matchingFilename = this.filenames.find(filename => symbol.startsWith(filename));
+      return matchingFilename;
+    },
     openSearch() {
       this.openDropdown()
       if (!this.Tickers.length > 0) {
@@ -61,22 +85,33 @@ export default {
         .then(response => response.json())
         .then(data => {
           console.log(data)
-          this.Tickers = data;
+          this.Tickers = data
+          // this.Tickers = this.Tickers.sort((tickerA, tickerB) => {
+          //   // Sort by ticker.price in ascending order
+          //   return tickerB.price - tickerA.price;
+          // });
           this.isDropdownOpen = true;
         })
         .catch(error => {
           console.error(error);
         });
     },
-    selectCity(city) {
-      this.searchTerm = city.name;
-      this.isDropdownOpen = false;
+    selectTicker(symbol) {
+      console.log("select");
+      console.log(symbol);
+      // this.searchTerm = symbol;
+      this.$emit('select', symbol)
+      // this.isDropdownOpen = false;
     },
     openDropdown() {
       this.isDropdownOpen = true;
     },
     closeDropdown() {
-      this.isDropdownOpen = false;
+      console.log("ici")
+      setTimeout(() => {
+        this.isDropdownOpen = false;
+
+      }, 100)
     }
   }
 };
@@ -123,7 +158,8 @@ export default {
   top: 100%;
   left: 0;
   width: 100%;
-  background-color: #313131;
+  // background-color: #313131;
+  background-color: #000000;
   border: 1px solid #1b1b1b;
   color: white;
   border-top: none;
@@ -147,6 +183,17 @@ export default {
 
 .dropdown li:hover {
   background-color: rgb(255, 255, 255, .1);
+}
+
+.crypto {
+  display: flex;
+  align-items: center;
+}
+
+.cryptoLogo {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 6px;
 }
 
 </style>
