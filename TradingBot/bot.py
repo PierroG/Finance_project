@@ -56,11 +56,17 @@ class Strategy:
 
     # Other methods specific to the strategy
 
+class BasicStrategy:
+    def __init__(self):
+        self.indicators = {}
+
+    def generate_signal(self, data):
+
 class DateSource:
     def __init__(self):
         pass
 
-        def get_real_time_data(self, symbol, interval):
+    def get_real_time_data(self, symbol, interval):
         # Fetch real-time candlestick data from the exchange
         # Return the data for further processing
 
@@ -69,3 +75,18 @@ class DateSource:
         # Return the data for further processing
 
     # Other methods for data processing, cleaning, and manipulation
+
+from binance.client import Client
+
+class BinanceDataSource(DataSource):
+    def __init__(self, api_key, api_secret):
+        this.client =  Client(api_key, api_secret)
+
+    def get_historical_data(self,symbol, interval, start_date, end_date):
+        candles = this.client.get_historical_klines(symbol=symbol,
+                                                    interval=interval)
+    
+
+# Binance API credentials
+API_KEY = 'gK0Ubnyg0Vzo8xz4AUElk8I1BitzDGMwn5o9392eko3SiltDDf5Sl0ySKM6bqLyT'
+API_SECRET = 'bbPcOuBvYVtXQaNYXKboPWPSHDXd9BzZV16OyygOSUMt0sA1NqMTkWT0gLZ4aUvl'
