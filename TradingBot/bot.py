@@ -47,9 +47,11 @@ class TradingBot:
 
 class Strategy:
     def __init__(self):
+        """"""
         # Initialize any strategy-specific parameters or indicators
 
     def generate_signal(self, data):
+        """"""
         # Implement the strategy logic here
         # Given the input data, generate a buy/sell signal
         # Return True for buy signal, False for sell signal
@@ -61,16 +63,19 @@ class BasicStrategy:
         self.indicators = {}
 
     def generate_signal(self, data):
+        ...
 
-class DateSource:
+class DataSource:
     def __init__(self):
         pass
 
     def get_real_time_data(self, symbol, interval):
+        """"""
         # Fetch real-time candlestick data from the exchange
         # Return the data for further processing
 
     def get_historical_data(self, symbol, interval, start_date, end_date):
+        """"""
         # Fetch historical candlestick data from the exchange
         # Return the data for further processing
 
@@ -80,13 +85,52 @@ from binance.client import Client
 
 class BinanceDataSource(DataSource):
     def __init__(self, api_key, api_secret):
-        this.client =  Client(api_key, api_secret)
+        self.client =  Client(api_key, api_secret)
 
     def get_historical_data(self,symbol, interval, start_date, end_date):
-        candles = this.client.get_historical_klines(symbol=symbol,
+        candles = self.client.get_historical_klines(symbol=symbol,
                                                     interval=interval)
     
 
 # Binance API credentials
 API_KEY = 'gK0Ubnyg0Vzo8xz4AUElk8I1BitzDGMwn5o9392eko3SiltDDf5Sl0ySKM6bqLyT'
 API_SECRET = 'bbPcOuBvYVtXQaNYXKboPWPSHDXd9BzZV16OyygOSUMt0sA1NqMTkWT0gLZ4aUvl'
+
+
+# import talib
+# from talib import stream
+
+
+class DataTest:
+    def __init__(self) -> None:
+        pass
+    
+    def get_data(self):
+        for i in range(100):
+            yield i
+
+import time
+
+class UniformRandomData():
+
+    def get_data(self):
+        import random
+        
+        price = 100
+        for i in range(100):
+            random_value = random.uniform(0, 1)*2 - 1
+            price += random_value
+            return price
+
+
+class DataStreamingTest(DataTest):
+
+    def get_data(self):
+        for i in range(100):
+            time.sleep(.5)
+            yield i
+
+dataSource = DataStreamingTest()
+
+for elem in dataSource.get_data():
+    print(elem)
