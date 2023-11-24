@@ -1,11 +1,22 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import datasource as ds
+
+import time
+
 class TradingBot:
-    def __init__(self, api_key, api_secret, symbol, quantity, interval):
-        self.client = Client(api_key, api_secret)
+    def __init__(self,
+                 api_key=None,
+                 api_secret=None,
+                 symbol=None,
+                 quantity=None,
+                 interval=None):
+        # self.client = Client(api_key, api_secret)
         self.strategy = None
         self.symbol = symbol
         self.quantity = quantity
         self.interval = interval
-        self.data_manager = DataManager(self.client)
+        self.data_manager = ds.YahooDataSource() #YahooDataSource()
 
     def set_strategy(self, strategy):
         self.strategy = strategy
@@ -14,7 +25,8 @@ class TradingBot:
         while True:
             try:
                 # Fetch real-time data
-                data = self.data_manager.get_real_time_data(self.symbol, self.interval)
+                data = self.data_manager.get_data()
+                # data = self.data_manager.get_real_time_data(self.symbol, self.interval)
 
                 # Generate signal using the strategy
                 if self.strategy.generate_signal(data):
@@ -25,13 +37,40 @@ class TradingBot:
             except Exception as e:
                 print(f"An error occurred: {e}")
 
-    def backtest(self, start_date, end_date):
-        # Fetch historical data
-        data = self.data_manager.get_historical_data(self.symbol, self.interval, start_date, end_date)
+    def backtest(self, start_date=None, end_date=None):
 
-        for candle in data:
-            if self.strategy.generate_signal(candle):
-                print(f"Buy order triggered at {candle[0]}")
+        data = []
+        buy = []
+        sell = []
+        # Fetch historical data
+        for elem in self.data_manager.get_data():
+        # for elem in self.data_manager.get_historical_data(self.symbol, self.interval, start_date, end_date):
+            data.append(elem)
+            elem = self.strategy.compute_indicators(data, elem)
+            data[-1] = elem
+
+
+           
+            if self.strategy.generate_signal(elem):
+                buy.append(elem)
+                # print(f"Buy order triggered at {elem}")
+            
+            if self.strategy.generate_signal(elem):
+                sell.append(elem)
+                # print(f"Buy order triggered at {elem}")
+
+        buy_df = pd.DataFrame(buy)
+        buy_df = buy_df.set_index('timestamp')
+
+        sell_df = pd.DataFrame(sell)
+        sell_df = sell_df.set_index('timestamp')
+
+        # print(buy_df)
+        # print(sell_df)
+
+        df = pd.DataFrame(data)
+        df = df.set_index('timestamp')
+        self.plot(df, buy_df, sell_df)
 
     def place_market_buy_order(self, symbol, quantity):
         try:
@@ -45,92 +84,29 @@ class TradingBot:
         except Exception as e:
             print(f"An error occurred: {e}")
 
-class Strategy:
-    def __init__(self):
-        """"""
-        # Initialize any strategy-specific parameters or indicators
+    def plot(self, data, buy, sell):
 
-    def generate_signal(self, data):
-        """"""
-        # Implement the strategy logic here
-        # Given the input data, generate a buy/sell signal
-        # Return True for buy signal, False for sell signal
+        plt.close('all')
 
-    # Other methods specific to the strategy
+        fig = plt.figure(figsize=(16,8))
 
-class BasicStrategy:
-    def __init__(self):
-        self.indicators = {}
+        #Define subplot
+        ax1 = plt.subplot2grid((6,1), (0,0), rowspan=6, colspan=1)
+        # ax2 = plt.subplot2grid((6,1), (4,0), rowspan=1, colspan=1, sharex=ax1)
+        # ax3 = plt.subplot2grid((6,1), (5,0), rowspan=1, colspan=1, sharex=ax1)
 
-    def generate_signal(self, data):
-        ...
-
-class DataSource:
-    def __init__(self):
-        pass
-
-    def get_real_time_data(self, symbol, interval):
-        """"""
-        # Fetch real-time candlestick data from the exchange
-        # Return the data for further processing
-
-    def get_historical_data(self, symbol, interval, start_date, end_date):
-        """"""
-        # Fetch historical candlestick data from the exchange
-        # Return the data for further processing
-
-    # Other methods for data processing, cleaning, and manipulation
-
-from binance.client import Client
-
-class BinanceDataSource(DataSource):
-    def __init__(self, api_key, api_secret):
-        self.client =  Client(api_key, api_secret)
-
-    def get_historical_data(self,symbol, interval, start_date, end_date):
-        candles = self.client.get_historical_klines(symbol=symbol,
-                                                    interval=interval)
-    
-
-# Binance API credentials
-API_KEY = 'gK0Ubnyg0Vzo8xz4AUElk8I1BitzDGMwn5o9392eko3SiltDDf5Sl0ySKM6bqLyT'
-API_SECRET = 'bbPcOuBvYVtXQaNYXKboPWPSHDXd9BzZV16OyygOSUMt0sA1NqMTkWT0gLZ4aUvl'
-
-
-# import talib
-# from talib import stream
-
-
-class DataTest:
-    def __init__(self) -> None:
-        pass
-    
-    def get_data(self):
-        for i in range(100):
-            yield i
-
-import time
-
-class UniformRandomData():
-
-    def get_data(self):
-        import random
+        #Create plots
+        ax1.plot(data['Close'], linewidth=0.8)
+        ax1.plot(data['sma_5'], linewidth=0.8)
         
-        price = 100
-        for i in range(100):
-            random_value = random.uniform(0, 1)*2 - 1
-            price += random_value
-            return price
+        ax1.scatter(sell.index, sell['Close'], c = 'red', marker = 8, s = 30, alpha=1)
+        ax1.scatter(buy.index, buy['Close'], c = 'green', marker = 9, s = 30, alpha=1)
 
 
-class DataStreamingTest(DataTest):
+        ax1.grid(alpha=0.3)
+        plt.tight_layout()
 
-    def get_data(self):
-        for i in range(100):
-            time.sleep(.5)
-            yield i
+        plt.show()
 
-dataSource = DataStreamingTest()
 
-for elem in dataSource.get_data():
-    print(elem)
+
