@@ -1,0 +1,32 @@
+- define a strategy
+    - define indicator to use
+    - define buy condition
+    - define sell condition
+
+- choose Ticker to use
+    - Symbol, Interval
+
+
+- buy operation
+- sell operation
+
+- run
+    - live
+        - subscribe to ticker socket
+
+    - backtest
+        - get historical data (date interval)
+
+    - on eatch tick run strategy 
+        - compute in dicator
+        - test buy/sell condition
+
+
+- plotting 
+    - plot ticker 
+    - plot indicators
+    - plot buy/sell point
+
+    - print (plot?) wallet
+
+    - equity curve ?
